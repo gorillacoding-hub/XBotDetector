@@ -1,0 +1,163 @@
+<!doctype html>
+<!-- Author: gorcoding -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XBotScope v2 · gorcoding</title><link rel="icon" href="data:,">
+<style>
+:root{--bg:#0e1116;--card:#171c24;--bd:#262d38;--tx:#e6e9ef;--mu:#8b95a5;--ac:#4da3ff;--ok:#3ecf8e;--bad:#ff5d6c;--wr:#f5b84b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px system-ui,sans-serif}
+header{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center}
+header b{font-size:16px}header span{color:var(--mu);font-size:12px}
+main{padding:12px;max-width:980px;margin:auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:12px}
+h3{margin:0 0 8px;font-size:14px;color:var(--ac)}
+label{display:block;color:var(--mu);font-size:12px;margin:6px 0 2px}
+input,select,textarea{width:100%;background:#0b0f14;color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:8px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+button{background:var(--ac);color:#04121f;border:0;border-radius:6px;padding:9px 12px;font-weight:600;margin:6px 6px 0 0}
+button.sec{background:#2a3342;color:var(--tx)}button.dng{background:var(--bad)}
+.bar{height:10px;background:#0b0f14;border-radius:5px;overflow:hidden}.bar i{display:block;height:100%}
+.g{display:grid;grid-template-columns:110px 1fr 44px;gap:8px;align-items:center;margin:6px 0}
+.chart{display:flex;align-items:flex-end;gap:2px;height:80px}.chart div{flex:1;background:var(--ac);min-height:1px;border-radius:2px 2px 0 0}
+.lab{display:flex;gap:2px;font-size:9px;color:var(--mu)}.lab span{flex:1;text-align:center}
+.tag{display:inline-block;background:#222b38;border-radius:12px;padding:3px 9px;margin:2px;font-size:12px}
+.tag b{color:var(--ac)}pre{background:#0b0f14;padding:8px;border-radius:6px;max-height:190px;overflow:auto;font-size:11px;white-space:pre-wrap}
+.mu{color:var(--mu)}.big{font-size:22px;font-weight:700}.flex{display:flex;gap:12px;align-items:center}
+img.av{width:64px;height:64px;border-radius:50%;background:#222}
+table{width:100%;border-collapse:collapse}td{padding:4px 6px;border-bottom:1px solid var(--bd);font-size:12px;vertical-align:top}
+a{color:var(--ac)}.warn{color:var(--wr)}
+</style></head><body>
+<header><b>🔎 XBotScope <span style="color:var(--ac)">v2</span></b><span>by gorcoding · local only</span></header>
+<main>
+<div class="card" id="v2"><h3>V2 · X browser collection <span class="mu" id="bver"></span></h3>
+ <div id="bst" class="mu">loading…</div>
+ <label>Search query (opened on x.com exactly as typed; X operators work)</label><input id="bq" placeholder='e.g. europe lang:en' autocapitalize="off">
+ <div class="row"><div><label>Results tab</label><select id="bsort"><option value="top">Top</option><option value="live">Latest</option></select></div>
+ <div><label>Max posts (session)</label><input id="bmax" type="number" value="500"></div>
+ <div><label>Min items to analyse</label><input id="bmin" type="number" value="20"></div></div>
+ <label><input id="bauto" type="checkbox" style="width:auto"> Auto-scroll (slow, human-paced). Off = only what you scroll to is collected</label>
+ <button onclick="bc('start')">Start collection</button><button class="sec" onclick="bc('pause')">Pause</button><button class="sec" onclick="bc('resume')">Resume</button>
+ <button class="dng" onclick="bc('stop')">Stop</button><button class="sec" onclick="bc('clear')">Clear session results</button><br>
+ <button class="sec" onclick="bc('open')">Open X home</button><button class="sec" onclick="bc('enrich')">Enrich profiles (slow)</button>
+ <button class="sec" onclick="if(confirm('Log out and delete the browser app\'s X cookies/data?'))bc('clear_browser')">Clear browser session</button>
+ <details style="margin-top:8px"><summary class="mu">Pair / launch the browser app</summary><div id="bpair" class="mu" style="margin-top:6px"></div></details>
+ <div class="card" style="margin-top:10px">
+  <h3>Browser · Full profile fetch</h3>
+  <label>Public X username</label><input id="bfuser" placeholder="@username" autocapitalize="off">
+  <label><input id="bfonly" type="checkbox" style="width:auto"> Profile only (skip posts, replies, followers and following)</label>
+  <div class="row">
+   <div><label>Posts</label><input id="bfposts" type="number" min="0" max="5000" value="500"></div>
+   <div><label>Replies</label><input id="bfcomments" type="number" min="0" max="5000" value="500"></div>
+   <div><label>Followers</label><input id="bffollowers" type="number" min="0" max="5000" value="200"></div>
+   <div><label>Following</label><input id="bffollowing" type="number" min="0" max="5000" value="200"></div>
+  </div>
+  <button onclick="startBrowserFull()">Start full fetch</button>
+  <button class="dng" onclick="bc('stop_full')">Stop full fetch</button>
+  <div id="bfullstatus" class="mu" style="margin-top:8px">No browser full fetch running.</div>
+ </div>
+ <div id="bacc" style="margin-top:10px"></div><div id="bclu"></div><div id="berr"></div></div>
+<div class="card"><h3>1 · Fetch account</h3>
+ <label>Username</label><input id="u" placeholder="@username" autocapitalize="off">
+ <div class="row"><div><label>Posts</label><input id="np" type="number" value="500"></div><div><label>Comments</label><input id="nc" type="number" value="500"></div>
+ <div><label>Followers</label><input id="nf" type="number" value="200"></div><div><label>Following</label><input id="ng" type="number" value="200"></div></div>
+ <label><input id="live" type="checkbox" style="width:auto"> Live mode - pause on captcha/block and open it in my browser</label>
+ <button onclick="fetchU()">Fetch / update</button><button class="sec" onclick="loadU($('#u').value)">Open saved profile</button>
+ <div id="saved" class="mu" style="margin-top:8px"></div></div>
+
+<div class="card" id="jobc" style="display:none"><h3>Job: <span id="js"></span> <span class="mu" id="jp"></span></h3>
+ <pre id="log"></pre><div id="jb"></div></div>
+
+<div id="prof"></div>
+
+<div class="card"><h3>Settings (network · user-agent · provider)</h3><div id="set"></div>
+ <button onclick="saveSet()">Save settings</button></div>
+<p class="mu" style="text-align:center;font-size:11px">Scores are heuristic probabilities, not proof. Use on public data responsibly. · gorcoding</p>
+</main>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(p,o){const r=await fetch(p,o===undefined?undefined:{method:'POST',headers:{'Content-Type':'application/json','X-XBS':'1'},body:JSON.stringify(o)});return r.json()}
+const flag=c=>c&&c.length==2?String.fromCodePoint(...[...c].map(x=>127397+x.charCodeAt(0))):'';
+let cur='',lastStatus='idle';
+const F=[['provider','Provider for username fetch: api (recommended) / nitter (deprecated, usually offline)'],['nitter','Nitter instance URL'],['bearer','X API bearer token (api provider)'],['user_agent','User-Agent'],['proxy','Proxy (http://… or socks5://…)'],['cookies','Cookies (optional, e.g. after solving captcha)'],['delay_min','Min delay between requests (s)'],['jitter','Random extra delay (s)'],['timeout','Timeout (s)'],['dork_delay','Dork search delay (s)'],['dork_max','Max dork queries'],['dork_tlds','Dork country TLDs (e.g. in,pk,de)'],['deep_relations','Deep followers (nitter: read each profile for location) true/false'],['open_cmd','Command to open links (termux-open-url)']];
+async function loadSet(){const s=await api('/api/settings');$('#set').innerHTML=F.map(([k,l])=>`<label>${l}</label>`+(k=='provider'?`<select id="s_${k}"><option>nitter</option><option>api</option></select>`:`<input id="s_${k}">`)).join('');F.forEach(([k])=>$('#s_'+k).value=s[k]);$('#live').checked=!!s.live}
+async function saveSet(){const o={};F.forEach(([k])=>{let v=$('#s_'+k).value;if(k=='deep_relations')v=v=='true';else if(['delay_min','jitter','timeout','dork_delay','dork_max'].includes(k))v=Number(v);o[k]=v});await api('/api/settings',o);alert('saved')}
+async function users(){const l=await api('/api/users');$('#saved').innerHTML=l.length?'Saved: '+l.map(x=>`<a href="#" onclick="loadU('${x.username}');return false">@${x.username}</a> <span class="mu">(${x.posts}p/${x.comments}c)</span>`).join(' · '):''}
+async function fetchU(){const u=$('#u').value.replace('@','').trim();if(!u)return;cur=u;const r=await api('/api/fetch',{username:u,posts:+$('#np').value,comments:+$('#nc').value,followers:+$('#nf').value,following:+$('#ng').value,live:$('#live').checked});if(!r.ok)alert(r.error||'a job is already running');poll()}
+async function poll(){const j=await api('/api/job');$('#jobc').style.display=j.status=='idle'?'none':'block';$('#js').textContent=j.kind+' · '+j.status;
+ $('#jp').textContent=Object.entries(j.progress).filter(([k,v])=>v).map(([k,v])=>k+':'+v).join('  ');$('#log').textContent=j.logs.join('\n');$('#log').scrollTop=1e6;
+ let b='';if(j.status=='paused')b+=`<a href="${esc(j.url)}" target="_blank">Open blocked page</a><br><button onclick="api('/api/job/resume',{})">Resume</button>`;
+ if(j.status=='running'||j.status=='paused')b+=`<button class="dng" onclick="api('/api/job/stop',{})">Stop</button>`;$('#jb').innerHTML=b;
+ if(['running','paused'].includes(j.status))setTimeout(poll,1500);else if(lastStatus!=j.status&&['done','stopped'].includes(j.status)&&cur){loadU(cur);users()}
+ lastStatus=j.status}
+const bars=(arr,lab)=>`<div class="chart">${arr.map(v=>`<div style="height:${100*v/Math.max(...arr,1)}%" title="${v}"></div>`).join('')}</div><div class="lab">${lab.map(l=>`<span>${l}</span>`).join('')}</div>`;
+const tags=(a,f)=>(a||[]).map(x=>`<span class="tag">${f(x)}</span>`).join('')||'<span class="mu">none</span>';
+const col={human:'var(--ok)',machine:'var(--bad)',foreign:'var(--wr)'};
+const cbars=l=>(l||[]).map(c=>`<div class="g"><span>${flag(c.iso)} ${esc(c.name)}</span><div class="bar"><i style="width:${c.pct??Math.min(100,c.n*10)}%;background:var(--ac)"></i></div><span>${c.pct!=null?c.pct+'%':c.n}</span></div>`).join('')||'<span class="mu">no data</span>';
+async function loadU(u){u=u.replace('@','').trim();if(!u)return;cur=u;const d=await api('/api/profile/'+u);if(d.error){$('#prof').innerHTML=`<div class="card warn">${esc(d.error)}</div>`;return}
+ const p=d.profile,a=d.a,s=a.scores;
+ let h=`<div class="card"><div class="flex"><img class="av" src="${esc(p.avatar||'')}" onerror="this.style.visibility='hidden'"><div><div class="big">${esc(p.name||p.username)} <span class="mu">@${esc(p.username)}</span></div>
+ <div class="mu">${esc(p.bio||'')}</div><div>📍 ${esc(p.location||'—')} · age ${a.age_days!=null?Math.floor(a.age_days/365*10)/10+' yrs ('+a.age_days+' d)':'unknown'} · ${p.followers??'?'} followers / ${p.following??'?'} following</div>
+ <div class="mu">${a.n} items analysed (${Object.keys(a.dups).length?'':''}${a.hours.reduce((x,y)=>x+y,0)}) · ${(a.comment_ratio*100).toFixed(0)}% comments</div></div></div></div>
+ <div class="card"><h3>Verdict: ${esc(a.verdict)}</h3>${['human','machine','foreign'].map(k=>`<div class="g"><span>${k=='foreign'?'foreign service':k}</span><div class="bar"><i style="width:${s[k]}%;background:${col[k]}"></i></div><b>${s[k]}%</b></div>`).join('')}
+ <div class="mu" style="font-size:12px">machine = automation signals · foreign service = coordinated/outsourced signals (timezone, agenda, vocabulary)</div>
+ <table>${a.signals.map(x=>`<tr><td>${esc(x.name)}</td><td style="width:70px"><div class="bar"><i style="width:${x.value*100}%;background:${x.value>.5?'var(--bad)':'var(--ok)'}"></i></div></td><td class="mu">${esc(x.detail)}</td></tr>`).join('')}</table></div>
+ <div class="card"><h3>Origin & time</h3><div>Claimed country: <b>${a.claimed?flag(a.claimed.iso)+' '+esc(a.claimed.name):'unknown'}</b> ·
+ Network origin (followers+following): <b>${a.origin_guess?flag(a.origin_guess.iso)+' '+esc(a.origin_guess.name)+' '+a.origin_guess.pct+'%':'unknown'}</b></div>
+ ${a.origin_note?`<div class="warn">⚠ ${esc(a.origin_note)}</div>`:''}
+ <div>Activity pattern suggests UTC${a.tz_offset!=null?(a.tz_offset>=0?'+':'')+a.tz_offset:' ?'} ${(a.tz_countries||[]).map(flag).join(' ')} ${a.tz_mismatch?'<span class="warn">⚠ does not match claimed country</span>':''}</div>
+ <label>X "About this account" country (type it manually if you checked it in the X app)</label><div class="flex"><input id="ab" value="${esc(d.about||'')}"><button onclick="api('/api/about/${p.username}',{country:$('#ab').value}).then(()=>loadU('${p.username}'))">Set</button></div>
+ <h3 style="margin-top:10px">Posting hours (UTC)</h3>${bars(a.hours,[...Array(24).keys()].map(i=>i%3?'':i))}
+ <h3 style="margin-top:10px">Weekdays (Mon→Sun)</h3>${bars(a.weekdays,['M','T','W','T','F','S','S'])}
+ <div class="mu">${a.per_day} items/day · quietest 6h window starts ${a.quiet_start_utc}:00 UTC · clients: ${esc(a.sources.map(x=>x[0]+' '+x[1]).join(', ')||'n/a')}</div></div>
+ <div class="card"><h3>Interests & words</h3><b>Topics</b><br>${tags(a.topics,x=>x[0]+' <b>'+x[1]+'</b>')}<br><b>Meaningful words</b><br>${tags(a.topic_words,x=>x[0]+' <b>'+x[1]+'</b>')}<br><b>Top words</b><br>${tags(a.top_words,x=>x[0]+' <b>'+x[1]+'</b>')}
+ <br><a href="/api/wordlist/${p.username}">⬇ Download generated wordlist (${a.wordlist.length})</a></div>
+ <div class="card"><h3>Duplicates & patterns (${(a.dups.rate*100).toFixed(0)}% duplicated)</h3><table>${a.dups.groups.map(g=>`<tr><td>×${g.count}</td><td>${esc(g.text)}</td></tr>`).join('')||'<tr><td class="mu">no exact duplicates</td></tr>'}</table>
+ <b>Repeated phrases</b><br>${tags(a.dups.phrases,x=>esc(x.text)+' <b>'+x.count+'</b>')}</div>
+ <div class="card"><h3>Country of network</h3>${cbars(a.network_countries)}<h3 style="margin-top:10px">Followers (${a.followers.n}, ${a.followers.unknown} unknown location)</h3>${cbars(a.followers.countries)}
+ <h3>Following (${a.following.n})</h3>${cbars(a.following.countries)}
+ <b>Content they follow</b><br>${tags(a.following.topics,x=>x[0]+' <b>'+x[1]+'</b>')}<br><b>Accounts sharing their vocabulary</b><br>${tags([...a.following.similar,...a.followers.similar].slice(0,12),x=>'@'+esc(x.user)+' <span class="mu">'+esc(x.shared.join(', '))+'</span>')}</div>
+ <div class="card"><h3>Dork search: who else posts this text?</h3>
+ <button onclick="runDorks('${p.username}')">Run searches (slow, rate-limited)</button>
+ ${d.dork_agg.queries?`<div><b>${d.dork_agg.queries} queries searched.</b> Sources by country:${cbars(d.dork_agg.countries)}<br>${tags(d.dork_agg.domains,x=>esc(x[0])+' <b>'+x[1]+'</b>')}</div>`:''}
+ <table>${d.dork_queries.slice(0,15).map(q=>`<tr><td>${esc(q.text.slice(0,70))}…<br><a target="_blank" href="${esc(q.links.google)}">Google</a> · <a target="_blank" href="${esc(q.links.bing)}">Bing</a> · <a target="_blank" href="${esc(q.links.ddg)}">DDG</a></td></tr>`).join('')}</table></div>`;
+ $('#prof').innerHTML=h}
+async function runDorks(u){await api('/api/dorks/'+u,{live:$('#live').checked});cur=u;poll()}
+
+const AUTHL={logged_in:'logged in',logged_out:'logged out',unknown:'unknown'};
+async function bc(action){const o={action};if(action=='start')Object.assign(o,{query:$('#bq').value,sort:$('#bsort').value,max_posts:+$('#bmax').value,min_items:+$('#bmin').value,autoscroll:$('#bauto').checked});
+ const r=await api('/api/bridge/control',o);if(!r.ok)alert(r.error||'failed');bstat(true)}
+async function startBrowserFull(){
+ const username=$('#bfuser').value.trim().replace(/^@/,'');
+ if(!username){alert('Enter an X username');return}
+ const o={action:'full_fetch',username,profile_only:$('#bfonly').checked,
+  posts:+$('#bfposts').value,comments:+$('#bfcomments').value,
+  followers:+$('#bffollowers').value,following:+$('#bffollowing').value};
+ const r=await api('/api/bridge/control',o);
+ if(!r.ok)alert(r.error||'Could not start full fetch');
+ bstat(true);
+}
+let bt=null;
+async function bstat(once){clearTimeout(bt);let b;try{b=await api('/api/bridge/status')}catch(e){$('#bst').textContent='backend unreachable';bt=setTimeout(bstat,3000);return}
+ $('#bver').textContent='v'+b.version;
+ const f=b.full_fetch||{};
+ $('#bfullstatus').innerHTML=f.status==='idle'?'No browser full fetch running.':
+  `<b>${esc(f.status)}</b> · @${esc(f.username)} · ${esc(f.stage)}<br>${esc(f.message||'')}
+   <br>Posts: ${f.counts?.posts||0} · Replies: ${f.counts?.comments||0}
+   · Followers: ${f.counts?.followers||0} · Following: ${f.counts?.following||0}`;
+ const ok=b.effective=='active',warn=b.challenge||!b.connected;
+ $('#bst').innerHTML=`<table>
+ <tr><td>Browser</td><td><b style="color:${b.connected?'var(--ok)':'var(--bad)'}">${b.connected?'connected':'disconnected'}</b> ${b.app?'(app '+esc(b.app)+')':''}</td></tr>
+ <tr><td>X session</td><td>${AUTHL[b.auth]} · page: ${esc(b.page)}</td></tr>
+ <tr><td>Collection</td><td><b style="color:${ok?'var(--ok)':warn?'var(--bad)':'var(--wr)'}">${esc(b.effective)}</b> ${b.stop_reason?'· '+esc(b.stop_reason):''} ${b.end_of_results?'· end of results reached':''}</td></tr>
+ <tr><td>Query</td><td>${esc(b.query)||'—'}</td></tr>
+ <tr><td>Posts collected</td><td>${b.posts} <span class="mu">(rejected invalid: ${b.rejected})</span></td></tr>
+ <tr><td>Accounts found</td><td>${b.accounts_found} · analysed ${b.analysed} · awaiting ${b.awaiting} <span class="mu">(need ≥${b.opts.min_items} items)</span></td></tr>
+ <tr><td>Last record</td><td>${b.last_ok||'none yet'}</td></tr></table>
+ ${b.challenge?`<div class="warn" style="margin-top:6px">⚠ ${esc(b.challenge)} challenge: solve it in the browser app, then press Resume. ${b.challenge_visible?'(still showing)':'(no longer detected)'}</div>`:''}`;
+ $('#bacc').innerHTML=b.accounts.length?`<b>Discovered accounts</b><table><tr class="mu"><td>account</td><td>items</td><td>H / M / F %</td><td>assessment</td></tr>`+b.accounts.map(a=>`<tr><td><a href="#" onclick="loadU('${a.username}');return false">@${esc(a.username)}</a>${a.profile?'':' <span class="mu">·no profile</span>'}${a.clusters?' <span class="warn">⚑'+a.clusters+'</span>':''}</td><td>${a.items}</td><td>${a.scores?a.scores.human+' / '+a.scores.machine+' / '+a.scores.foreign:'<span class="mu">awaiting</span>'}</td><td>${esc(a.label||'')}</td></tr>`).join('')+'</table>':'';
+ $('#bclu').innerHTML=b.clusters.length?`<b>Coordination: same/near-same text from different accounts</b><table>`+b.clusters.map(c=>`<tr><td>${c.n_accounts} accts · ${c.posts} posts · ${c.span_min} min</td><td>${esc(c.text)}<br><span class="mu">${c.accounts.map(u=>'@'+esc(u)).join(' ')}</span></td></tr>`).join('')+'</table>':'';
+ $('#berr').innerHTML=b.errors.length?`<b>Collection errors</b><pre>${esc(b.errors.map(e=>e.t+' '+e.msg).join('\n'))}</pre>`:'';
+ bt=setTimeout(bstat,2000)}
+async function bpair(){const p=await api('/api/bridge/pairing');$('#bpair').innerHTML=`1) Install the XBotScope Browser app (see README).<br>2) Tap: <a href="${esc(p.link)}">Pair &amp; launch browser app</a><br>or in the app press <b>Pair</b> and enter port <b>${p.port}</b> and token:<br><code style="word-break:break-all">${esc(p.token)}</code><br><span class="mu">Local pairing token only. It is not an X credential.</span>`}
+bstat();bpair();
+loadSet();users();poll();
+</script></body></html>
