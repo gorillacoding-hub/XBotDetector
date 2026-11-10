@@ -6,7 +6,8 @@ ROOT = BASE / "data"
 SET = BASE / "settings.json"
 UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
 DEFAULTS = {"provider":"nitter","bearer":"","nitter":"https://nitter.net","user_agent":UA,"proxy":"","cookies":"",
- "delay_min":3,"jitter":2,"timeout":25,"dork_delay":8,"dork_max":20,"dork_tlds":"","deep_relations":False,"live":False,"open_cmd":"termux-open-url"}
+ "delay_min":3,"jitter":2,"timeout":25,"dork_delay":8,"dork_max":20,"dork_tlds":"","deep_relations":False,"live":False,"open_cmd":"termux-open-url",
+ "ai_provider":"anthropic","ai_base_url":"","ai_model":"claude-haiku-5-5","ai_key":"","ai_consent":False,"ai_send_samples":False,"ai_n_samples":12,"ai_identity":False}
 
 def _w(path, obj):
     tmp = str(path)+".tmp"

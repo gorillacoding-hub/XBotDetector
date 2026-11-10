@@ -117,7 +117,7 @@ def analyze(prof,posts,comments,followers,following,about=None):
      "automation client":(1.0 if auto_client else 0,", ".join(k for k,_ in src.most_common(3)) or "n/a"),
      "link-heavy":(cl((urls/n-0.5)/0.4) if n else 0,f"{(urls/n*100 if n else 0):.0f}% contain links"),
      "timezone mismatch":(1.0 if mismatch else 0,f"activity pattern ~UTC{off:+g} vs claimed {claimed}" if mismatch else "consistent / unknown"),
-     "single-agenda content":(cl((share-0.4)/0.5)*cl((toth/n if n else 0)/0.3),f"top topic {tcnt.most_common(1)[0][0]} = {share*100:.0f}% of topic words" if toth else "n/a"),
+     "single-agenda content":(cl((share-0.4)/0.5)*cl((toth/n if n else 0)/0.3)*cl(toth/15),f"top topic {tcnt.most_common(1)[0][0]} = {share*100:.0f}% of topic words" if toth else "n/a"),
      "bot vocabulary":(cl((botn/n if n else 0)/0.25),f"{botn} items with spam/engagement phrases"),
      "young high-output account":(1.0 if (out["age_days"] is not None and out["age_days"]<90 and per_day>20) else 0,f"age {out['age_days']}d"),
      "follow ratio abuse":(1.0 if fing>1000 and fing>5*max(fol,1) else 0,f"{fing} following / {fol} followers"),
@@ -130,4 +130,11 @@ def analyze(prof,posts,comments,followers,following,about=None):
     out["scores"]["human"]=100-out["scores"]["machine"]-out["scores"]["foreign"]
     out["signals"]=[{"name":k,"value":round(v,2),"detail":d} for k,(v,d) in sorted(sig.items(),key=lambda x:-x[1][0])]
     out["verdict"]=max(out["scores"],key=out["scores"].get) if n>=20 else "insufficient data"
+    eng={}
+    for k in ("likes","replies","reposts","views"):
+        v=[i[k] for i in items if isinstance(i.get(k),(int,float))]
+        eng[k]=statistics.median(v) if v else None
+    out["engagement"]=eng
+    cf=min(1.0,n/200)*0.7+(0.15 if created else 0)+(0.15 if prof.get("followers") is not None else 0)
+    out["confidence"]={"pct":round(cf*100),"label":"high" if cf>=0.7 else "medium" if cf>=0.4 else "low"}
     return out

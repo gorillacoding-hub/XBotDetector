@@ -1,62 +1,64 @@
-# XBotScope v2.0.0 — by gorcoding
-Local dashboard (Termux + Flask) that scores X accounts as **human / machine / foreign-service** from public signals, now fed by
+# XBotDetector (XBotScope) v2.1.0 — by gorcoding
+Local dashboard (Termux + Flask) that scores X accounts as **human / machine / foreign-service** from public signals, using
 **your own logged-in x.com session** inside a small Android WebView app.
 
 ```
- Android "XBotScope Browser" app ──(structured public records, 127.0.0.1 only, pairing token)──▶ Flask backend (Termux)
-   WebView on https://x.com                                                                     └─▶ data/<user>/*.json ─▶ analyze() ─▶ dashboard
-   you log in / solve captchas yourself
+Android app "XBotScope Browser"                              Termux
+ ├ X view  (WebView on https://x.com, you log in)  ──records (127.0.0.1 only, pairing token)──▶ Flask backend ─▶ data/<user>/*.json ─▶ analyze()
+ └ Dashboard view (the dashboard, stacked on top) ◀──────────────────────────────────────────────────────────┘
 ```
-Cookies, passwords and session data stay inside the WebView. The backend only ever receives post/profile fields visible on the page.
+Cookies, passwords and session data stay inside the WebView. The backend only receives post/profile fields visible on the page.
 
 ## 1. Install the backend (Termux)
 ```
-pkg install -y unzip && unzip xbotscope-v2.zip && cd xbotscope
-bash install.sh          # python, termux-api, flask, requests
-bash run.sh              # http://127.0.0.1:8080
+pkg install -y unzip && unzip XBotDetector-v2.1.zip && cd XBotDetector
+bash install.sh && bash run.sh        # dashboard on http://127.0.0.1:8080
 ```
-**Upgrade from V1:** unzip V2 over/next to V1 and keep your `data/` and `settings.json` folders — the data format is unchanged.
+Upgrade from V1/V2.0: unzip over the old folder; keep `data/` and `settings.json` (format unchanged).
 
 ## 2. Install the browser app (`android/`)
-No PC needed (option A) — or use Android Studio (option B).
-- **A. GitHub Actions (phone only):** create a free GitHub repo, upload this whole project, open *Actions → Build APK → Run workflow*, download the `xbotscope-browser-debug` artifact, unzip, install the APK (allow "install unknown apps").
-- **B. Android Studio:** open the `android/` folder, *Build → Build APK(s)*.
-Requires Android 8+ and an up-to-date *Android System WebView* (the app tells you if it is too old).
+- **A. GitHub Actions (phone only):** upload this whole project to a GitHub repo → *Actions → Build APK → Run workflow* → download the `xbotscope-browser-debug` artifact → install the APK. If the build fails, open the failed step and send me the log (it runs with `--stacktrace`).
+- **B. Android Studio:** open `android/` → *Build APK(s)*.
+Needs Android 8+ and an up-to-date *Android System WebView*.
 
 ## 3. Use it
-1. `bash run.sh`, open the dashboard. In *V2 · X browser collection → Pair / launch*, tap **Pair & launch browser app** (or press **Pair** in the app and enter port + token).
-2. The status table must show **Browser: connected**. Log in to X in the app (your own account, manually).
-3. Type a query, choose Top/Latest, set max posts, **Start collection**. The app opens `x.com/search?q=<your query>` exactly as typed (X operators like `lang:en`, `from:` work).
-4. Scroll the results yourself, or enable **Auto-scroll** (slow, random 4–9 s steps, off by default).
-5. Accounts appear in the table. With ≥ *Min items* collected they are analysed by the existing V1 engine; click one for the full profile. Optionally press **Enrich profiles** (slow) to read bio/location/join date.
-6. **Pause / Resume / Stop / Clear session results** (saved history is never deleted). **Clear browser session** logs the app out of X and wipes its cookies/cache/site data (also available in the app).
+1. Keep Termux running `bash run.sh`. Open the **XBotScope Browser** app: it opens on the dashboard. In *Pair / launch → Show pairing (2 min)* tap **Pair this app**. Status must say **Browser: connected**.
+2. Tap **X** (top bar), log in to X manually (your own account). Tap **Dashboard** to come back — switching views keeps X running underneath.
+3. **Auto plan:** enter one or more profiles (`@name`, links) and limits — posts 100, replies 50, followers/following 0 = skip — optionally searches (one per line), keep *Auto-scroll* ticked, **Start plan**. Per profile it runs header → posts → replies → followers → following; each time a limit is reached the browser moves to the next page on its own, then the next profile. When a profile's steps finish it is analysed automatically (open it from *Saved profiles*). **Profile-only analysis** = a plan with just a profile.
+4. **Manual search** (top card) still works exactly as in V2.0 (single query, you scroll or enable auto-scroll).
+5. **Saved profiles:** filter, open, export (JSON in `data/exports/`), delete selected, delete everything (type DELETE). A profile used by a running plan can't be deleted.
+6. **Pause / Resume / Skip / Stop** at any time. **Clear browser session** logs the app out of X and wipes its cookies/cache.
 
 ### CAPTCHA & security challenges
-Detected CAPTCHA / verification / rate-limit / lock → collection **pauses**, the dashboard and the app show a notice. Solve it in the app, then press **Resume** yourself. Nothing is bypassed or automated.
+CAPTCHA / verification / rate-limit / lock detected → everything **pauses**, notice in dashboard and app. Solve it in the X view, then press **Resume** yourself. Nothing is bypassed or automated.
 
-## 4. What is *not* collected
-Passwords, codes, cookies, tokens, DMs, protected accounts (skipped), reposts (skipped – they belong to the original author). Records containing `auth_token`/`ct0=` strings are dropped. No analytics, no third-party servers; backend binds to 127.0.0.1; Android cleartext traffic is allowed to 127.0.0.1/localhost only; only the INTERNET permission.
+## 4. Optional AI second opinion
+Settings → *AI*: choose provider (Anthropic, or any OpenAI-compatible incl. local Ollama at `http://127.0.0.1:11434/v1`), model, key, tick **consent**. Then **Ask AI** on a profile.
+- Default sends **only numeric features** (no posts, bio, username, display name). Optionally also N sample posts + bio. Nothing is sent without consent and a button press.
+- The key is stored only in `settings.json` on the phone and never returned to the browser UI. With a cloud provider, data leaves the device — use a local model if that is not acceptable.
+- The AI opinion is shown separately, labelled "not evidence", and never changes the scores.
 
 ## 5. Scores
-Unchanged V1 model (see `core/analyze.py`). The dashboard adds a label — *automated* (machine ≥ 60 and ≥ 3 strong signals), *suspicious*, *unusual activity*, *no strong indicators* — and a coordination view. Search results usually give few posts per account, so many accounts stay "awaiting" until enough items are collected. Scores are heuristics, not proof.
+Engine in `core/analyze.py` (v2.1: single-agenda false-positive fix, adds confidence + engagement). Dashboard label: *automated* (machine ≥ 60 and ≥ 3 strong signals), *suspicious*, *unusual activity*, *no strong indicators*. Heuristics, not proof; a profile with < 20 items reports "insufficient data".
 
-## 6. Tests (`tools/`)
-`python tools/selftest.py` (backend: validation, security, pause/resume/stop, challenge, disconnect, clear, V1 score parity, log scan) · `python tools/collector_test.py` (needs `pip install playwright` + Chromium; runs the page script against a mock X page) · `python tools/audit.py` (privacy/permission audit).
+## 6. Privacy
+Never collected: passwords, codes, cookies, tokens, DMs, protected accounts (skipped), reposts (skipped). Backend binds 127.0.0.1; Host check + `X-XBS` header block cross-site requests; bridge needs a token; only the INTERNET permission; cleartext only to 127.0.0.1; the dashboard view can only open the local backend; the page script is injected for `https://x.com` only.
 
-## 7. Known limitations (read this)
-- **Not verified on a device or on real x.com.** The Kotlin app was not compiled or run by the author; the page script was tested only against a mock of X's markup. X changes its markup (`data-testid`s), may rate-limit, restrict or suspend accounts, and its Terms restrict automated collection — use at your own risk, ideally with an account you can afford to lose.
-- Reply detection relies on English "Replying to" text; other UI languages are collected as posts.
-- Auto-scroll stops when no new content loads; X may cap how deep search goes.
-- The V1 username fetch (api/nitter) is unchanged; V1 had no keyword search, so the query is passed to x.com untouched.
+## 7. Tests (`tools/`)
+`selftest.py` (bridge, security, V1 parity) · `selftest_plan.py` (plan engine, limits & page switching, stall/end/skip, relations, manager, AI with mocked provider, secrets, pairing) · `collector_test.py`, `collector_modes_test.py` (page script in headless Chromium against mock X markup; needs `pip install playwright`) · `audit.py` (privacy/permission audit).
 
-## 8. Troubleshooting
+## 8. Known limitations — read this
+- **Not verified on a real device or real x.com.** The Kotlin app was never compiled here (no Android SDK offline); the page script was tested only against mock X markup. X can change its markup, restrict, rate-limit or suspend accounts, and its Terms restrict automated collection — use an account you can afford to lose.
+- Reply detection: "Replying to" text (English) or the parent tweet shown above on the replies tab; thread-self-replies count as posts.
+- Followers/following lists show name + bio only (no location); X may cap how deep they load. Protected profiles can't be read; their steps time out after 25–60 s and the plan moves on.
+- Auto-scroll is slow on purpose (4–9 s per step), so 100 posts takes a few minutes.
+
+## 9. Troubleshooting
 | Problem | Fix |
 |---|---|
-| Browser stays *disconnected* | Start `run.sh` first; re-pair; the app and backend must use the same port; don't use battery-saver that kills the app. |
-| "WebView too old" | Update *Android System WebView* / Chrome in Play Store. |
-| X login refuses / loops | Try again later, use the X password flow (not Google/Apple sign-in; non-X sites are blocked in the app), solve any prompts. |
-| State "running – waiting for results" | You are not on a search page, nothing new is loaded, or X shows an error: scroll, reload, or check for a challenge. |
-| 403 on dashboard | Open it as `http://127.0.0.1:8080` (not another hostname). |
-| Everything "awaiting" | Collect more posts per account or lower nothing — the engine needs ≥ 20 items. |
-
-Version: `VERSION` file / `core/version.py` / `/api/version`.
+| Browser *disconnected* | `bash run.sh` first; re-pair (*Show pairing*); same port; exempt the app from battery optimisation. |
+| Dashboard in the app says "backend not reachable" | Start Termux `run.sh`, press **Reload** in the app. |
+| Plan sits on a step, status shows "0 posts visible" | Not logged in, page still loading, or X changed markup — check the Diagnostics row and the app status line; send me those. |
+| "WebView too old" | Update *Android System WebView* / Chrome. |
+| X login loops | Use username + password (not Google/Apple; non-X sites are blocked), solve prompts, retry later. |
+| 403 on dashboard | Use `http://127.0.0.1:8080`, not another hostname. |

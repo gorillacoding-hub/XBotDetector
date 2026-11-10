@@ -1,5 +1,22 @@
 # Changelog — by gorcoding
 
+## 2.1.0
+**Added**
+- **Auto plan** (dashboard + `core/bridge.py`): per profile *header → posts → replies → followers → following*, then the next profile / search. Each step has its own limit (e.g. replies 50); when it is reached — or the end of results, or 60 s without progress — the browser **switches to the next page by itself**. Settle pause (6–11 s) after each switch, human-paced scrolling, challenges still pause everything and need an explicit Resume. Skip-step button.
+- **Profile-only analysis**: run a plan with just a profile (header + posts/replies limits); the engine runs automatically when its steps finish. Also works with several profiles / x.com links at once.
+- **Saved profiles manager**: browse, filter, open, export (JSON), delete selected, delete everything (typed confirmation); refuses to delete a profile an active plan is using.
+- **Optional AI second opinion** (off by default): Anthropic or any OpenAI-compatible endpoint (incl. local Ollama). Needs explicit consent in Settings; default sends numbers only (no post text, bio or identity). Output is shown separately and never changes the scores. Post text is treated as untrusted (prompt-injection guard).
+- **In-app dashboard**: the Android app now shows the dashboard on top of the X view, so you never have to leave it (leaving let Android throttle the X page and stop collection). Screen is kept awake while collecting.
+- **Diagnostics**: dashboard + app status show posts/users visible on the page, whether it is the right page for the step, filtered off-target counts, and warn when nothing is visible.
+- Engine: `confidence` (data coverage) and `engagement` medians in the output.
+
+**Changed / fixed**
+- `single-agenda content` no longer fires on a handful of topic words (needs ≥ 15 topic hits).
+- Usernames are matched case-insensitively to one data folder (`Alice` = `alice`).
+- Pairing token is only shown for 2 minutes after pressing *Show pairing*; API keys / bearer / cookies are never sent back to the browser.
+- Records/relations/profile messages carry a step sequence number; stale messages from the previous page are discarded.
+- Workflow: `--stacktrace` for readable build failures.
+
 ## 2.0.0
 **Added**
 - Authenticated X collection through the main site (https://x.com) in a dedicated Android WebView app (`android/`). Manual login, persistent isolated session, CAPTCHA/verification shown to the user.

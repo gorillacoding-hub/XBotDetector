@@ -77,7 +77,7 @@ BRIDGE.last_hb = time.time()-60
 s = st(); check("disconnect: not shown as active", s["effective"].startswith("disconnected") and "NOT active" in s["effective"])
 hb(); check("reconnect", st()["connected"] and st()["effective"] in ("active","running - waiting for results"))
 # 'active' only when records recent
-BRIDGE.last_ok = time.time()-300; check("no recent records => not 'active'", st()["effective"] == "running - waiting for results")
+BRIDGE.last_ok = time.time()-300; BRIDGE.hold_until = 0; check("no recent records => not 'active'", st()["effective"] == "running - waiting for results")
 # clear session keeps history
 files_before = len(list((store.ROOT/"botty").glob("*.json")))
 ctl(action="clear"); s = st()
