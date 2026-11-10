@@ -1,5 +1,10 @@
 # Changelog — by gorcoding
 
+## 2.1.1
+**Fixed**
+- Collector no longer drops posts when the status link is absolute, contains a query string, or the time element is nested differently. Username falls back to the User-Name profile link.
+- Metric counters read the inner transition-container span used by current X layouts.
+
 ## 2.1.0
 **Added**
 - **Auto plan** (dashboard + `core/bridge.py`): per profile *header → posts → replies → followers → following*, then the next profile / search. Each step has its own limit (e.g. replies 50); when it is reached — or the end of results, or 60 s without progress — the browser **switches to the next page by itself**. Settle pause (6–11 s) after each switch, human-paced scrolling, challenges still pause everything and need an explicit Resume. Skip-step button.

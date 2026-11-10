@@ -1,5 +1,5 @@
 // Author: gorcoding
-// XBotScope page collector (v2.1). Injected at document start for https://x.com ONLY.
+// XBotScope page collector (v2.1.1). Injected at document start for https://x.com ONLY.
 // Reads publicly visible fields from the page DOM for the CURRENT step set by the app
 // (search | posts | replies | followers | following | profile) and sends them to the app.
 // It never touches credentials, cookies, storage or forms. It never clicks anything.
@@ -21,16 +21,33 @@
   function metric(a, id) {
     var el = a.querySelector('[data-testid="' + id + '"]');
     if (!el) return null;
-    var t = (el.innerText || "").trim();
+    // Prefer the innermost transition container when present (X layout 2025+)
+    var span = el.querySelector('[data-testid="app-text-transition-container"] span') || el;
+    var t = (span.innerText || el.innerText || "").trim();
     return t === "" ? 0 : num(t);
   }
   function tweets() { return document.querySelectorAll('article[data-testid="tweet"]'); }
   function cells() { return document.querySelectorAll('[data-testid="UserCell"]'); }
   function path() { return lc(location.pathname).replace(/\/+$/, ""); }
+  // Accept relative, absolute, and query-string status links
+  function statusMatch(href) {
+    if (!href) return null;
+    var m = String(href).match(/(?:https?:\/\/(?:www\.)?(?:x|twitter)\.com)?\/(\w{1,15})\/status\/(\d+)/i);
+    if (m) return { user: m[1], id: m[2] };
+    m = String(href).match(/\/status\/(\d+)/);
+    return m ? { user: null, id: m[1] } : null;
+  }
   function authorOf(a) {
     var t = a && a.querySelector("time"), l = t && t.closest("a");
-    var m = l && (l.getAttribute("href") || "").match(/^\/(\w{1,15})\/status\/\d+/);
-    return m ? m[1] : null;
+    var sm = statusMatch(l && l.getAttribute("href"));
+    if (sm && sm.user) return sm.user;
+    // Fallback: first profile link inside the User-Name block
+    var nm = a && a.querySelector('[data-testid="User-Name"] a[href^="/"]');
+    if (nm) {
+      var hm = (nm.getAttribute("href") || "").match(/^\/(\w{1,15})(?:\/|$)/);
+      if (hm) return hm[1];
+    }
+    return null;
   }
   // is the page we are on the right page for the current step?
   function inScope() {
@@ -73,22 +90,36 @@
   // ---- tweets (search / posts / replies)
   function extract(a, replyCtx) {
     var t = a.querySelector("time"); if (!t) return null;
-    var link = t.closest("a"); if (!link) return null;
-    var m = (link.getAttribute("href") || "").match(/^\/(\w{1,15})\/status\/(\d+)/); if (!m) return null;
-    var id = m[2]; if (S.seen.has(id)) return null;
+    var link = t.closest("a");
+    var sm = statusMatch(link && link.getAttribute("href"));
+    // Also try any status link inside the article when the time link is missing or non-standard
+    if (!sm) {
+      var any = a.querySelector('a[href*="/status/"]');
+      sm = statusMatch(any && any.getAttribute("href"));
+    }
+    if (!sm || !sm.id) return null;
+    var id = sm.id; if (S.seen.has(id)) return null;
     S.seen.add(id);
     if (a.querySelector('[data-testid="icon-lock"]')) return null;                       // protected account: skip
     var sc = a.querySelector('[data-testid="socialContext"]');
     if (sc && /repost|retweet/i.test(sc.innerText || "")) return null;                   // reposts belong to the original author: skip
     var txt = a.querySelector('[data-testid="tweetText"]'), nm = a.querySelector('[data-testid="User-Name"]');
     var av = a.querySelector('[data-testid="Tweet-User-Avatar"] img'), views = a.querySelector('a[href$="/analytics"]');
+    // Resolve username: prefer status link, else User-Name profile link
+    var username = sm.user;
+    if (!username) {
+      var nmLink = nm && nm.querySelector('a[href^="/"]');
+      var hm = nmLink && (nmLink.getAttribute("href") || "").match(/^\/(\w{1,15})(?:\/|$)/);
+      username = hm ? hm[1] : null;
+    }
+    if (!username) return null;
     var isReply = /^\s*Replying to\b/m.test((a.innerText || "").slice(0, 400));
     if (!isReply && replyCtx) {                                  // on a user's replies tab a reply is shown under its parent (another author)
       var cell = a.closest('[data-testid="cellInnerDiv"]'), prev = cell && cell.previousElementSibling;
       var pa = prev && authorOf(prev.querySelector('article[data-testid="tweet"]'));
-      if (pa && lc(pa) !== lc(m[1])) isReply = true;
+      if (pa && lc(pa) !== lc(username)) isReply = true;
     }
-    return { id: id, username: m[1], name: nm ? ((nm.innerText || "").split("\n")[0] || "").slice(0, 80) : "",
+    return { id: id, username: username, name: nm ? ((nm.innerText || "").split("\n")[0] || "").slice(0, 80) : "",
       text: txt ? txt.innerText : "", ts: t.getAttribute("datetime"), kind: isReply ? "comment" : "post",
       verified: !!a.querySelector('[data-testid="icon-verified"]'), avatar: av ? av.src : "", lang: txt ? txt.getAttribute("lang") : null,
       replies: metric(a, "reply"), reposts: metric(a, "retweet"), likes: metric(a, "like"), views: views ? num(views.innerText) : null };

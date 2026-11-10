@@ -213,7 +213,7 @@ class MainActivity : Activity() {
 
     // ---------- app <-> backend
     private fun heartbeat() {
-        val body = JSONObject().put("app", "2.1.0").put("auth", auth).put("page", page)
+        val body = JSONObject().put("app", "2.1.1").put("auth", auth).put("page", page)
             .put("challenge", pageChallenge ?: JSONObject.NULL).put("end", endOfResults).put("seq", pageSeq)
             .put("diag", diag ?: JSONObject())
         client.post("/api/bridge/in/heartbeat", body) { r ->
