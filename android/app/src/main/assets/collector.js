@@ -267,16 +267,52 @@
     send({t:"full_done",kind:kind,message:reason||"complete"});
   }
   function startFull(kind,username,limit) {
-    clearTimeout(FULL&&FULL.timer);
-    FULL={kind:kind,username:username,limit:Math.max(0,Number(limit)||0),
-      seen:new Set(),stuck:0,lastH:0,timer:null};
+    clearTimeout(FULL && FULL.timer);
+
+    FULL={
+      kind:kind,
+      username:username,
+      limit:Math.max(0,Number(limit)||0),
+      seen:new Set(),
+      stuck:0,
+      lastH:0,
+      timer:null
+    };
+
     if(kind==="profile") {
-      var p=fullProfile();
-      if(p) send({t:"full_profile",profile:p});
-      fullFinish(p?"profile collected":"profile not available (protected or page not loaded)");
+      var deadline = Date.now() + 25000;
+
+      function retryProfile() {
+        if(!FULL || FULL.kind !== "profile") return;
+
+        var p = fullProfile();
+
+        if(p && p.username &&
+           p.username.toLowerCase() === username.toLowerCase()) {
+          send({t:"full_profile",profile:p});
+          fullSendProgress("Profile successfully collected");
+          fullFinish("profile collected");
+          return;
+        }
+
+        if(Date.now() >= deadline) {
+          fullFinish("Profile unavailable after 25 seconds. Check that the X profile is public and fully loaded.");
+          return;
+        }
+
+        fullSendProgress("Waiting for X profile to finish loading...");
+        FULL.timer = setTimeout(retryProfile,700);
+      }
+
+      retryProfile();
       return;
     }
-    if(FULL.limit===0) { fullFinish("limit set to zero"); return; }
+
+    if(FULL.limit===0) {
+      fullFinish("limit set to zero");
+      return;
+    }
+
     fullScan();
   }
 
