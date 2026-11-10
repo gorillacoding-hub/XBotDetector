@@ -1,4 +1,4 @@
-# XBotDetector (XBotScope) v2.1.1 — by gorcoding
+# XBotDetector (XBotScope) v2.1.2 — by gorcoding
 Local dashboard (Termux + Flask) that scores X accounts as **human / machine / foreign-service** from public signals, using
 **your own logged-in x.com session** inside a small Android WebView app.
 

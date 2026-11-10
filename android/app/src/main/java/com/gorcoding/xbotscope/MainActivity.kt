@@ -185,7 +185,9 @@ class MainActivity : Activity() {
         when (o.optString("t")) {
             "state" -> {
                 auth = o.optString("auth", "unknown"); page = o.optString("page", "other")
-                pageChallenge = o.optString("challenge", "").ifEmpty { null }
+                // JSON null becomes the string "null" with optString; treat it as no challenge
+                val ch = if (o.isNull("challenge")) "" else o.optString("challenge", "")
+                pageChallenge = ch.takeIf { it.isNotEmpty() && it != "null" }
                 endOfResults = o.optBoolean("end", false); pageSeq = s; diag = o.optJSONObject("diag")
                 updateStatus()
             }
@@ -213,7 +215,7 @@ class MainActivity : Activity() {
 
     // ---------- app <-> backend
     private fun heartbeat() {
-        val body = JSONObject().put("app", "2.1.1").put("auth", auth).put("page", page)
+        val body = JSONObject().put("app", "2.1.2").put("auth", auth).put("page", page)
             .put("challenge", pageChallenge ?: JSONObject.NULL).put("end", endOfResults).put("seq", pageSeq)
             .put("diag", diag ?: JSONObject())
         client.post("/api/bridge/in/heartbeat", body) { r ->
@@ -235,7 +237,16 @@ class MainActivity : Activity() {
 
     private fun handleCommand(o: JSONObject) {
         when (o.optString("action")) {
-            "open" -> { val u = Uri.parse(o.optString("url")); if (u.scheme == "https" && u.host == "x.com") web.loadUrl(u.toString()) }
+            "open" -> {
+                val u = Uri.parse(o.optString("url"))
+                if (u.scheme == "https" && u.host == "x.com") {
+                    // Briefly reveal the X view so the WebView can finish rendering (many devices
+                    // throttle or defer JS/layout while the view stays fully covered).
+                    showDashboard(false)
+                    web.loadUrl(u.toString())
+                    ui.postDelayed({ showDashboard(true) }, 2500)
+                }
+            }
             "reset_seen" -> { collected = 0; web.evaluateJavascript("window.__xbs&&window.__xbs.ctl({reset:true})", null) }
             "enrich" -> {
                 val a = o.optJSONArray("usernames") ?: return
@@ -270,11 +281,17 @@ class MainActivity : Activity() {
     private fun updateStatus() {
         if (!ready) return
         val d = diag
+        val loginHint = when {
+            auth == "logged_out" -> " · TAP X AND LOG IN"
+            auth == "unknown" && (d?.optInt("articles") ?: 0) == 0 -> " · TAP X, LOG IN, WAIT FOR FEED"
+            else -> ""
+        }
         statusView.text = "backend: ${if (connected) "connected" else if (client.configured()) "NOT reachable" else "not paired"} · X: $auth · " +
             "$backendState · step: $modeKind${if (modeTarget.isNotEmpty()) " $modeTarget" else ""}${if (hold) " (settling)" else ""} · page: $page · sent: $collected" +
             (if (d != null) " · on page: ${d.optInt("articles")} posts, ${d.optInt("cells")} users, in-scope=${d.optBoolean("scope")}" else "") +
             (if (enriching) " · enriching ${enrichQueue.size} left" else "") +
-            (pageChallenge?.let { " · CHALLENGE: $it - solve it in X view, then Resume in dashboard" } ?: "")
+            loginHint +
+            (pageChallenge?.let { " · CHALLENGE: $it - solve it in X view, then Resume" } ?: "")
     }
 
     private fun showPairDialog() {

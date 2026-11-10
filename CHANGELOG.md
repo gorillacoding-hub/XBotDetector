@@ -1,5 +1,12 @@
 # Changelog — by gorcoding
 
+## 2.1.2
+**Fixed**
+- Status no longer shows a false "CHALLENGE: null".
+- Clear status hint when X session is unknown / logged out and no posts are visible.
+- On page navigation the X view is briefly revealed so the WebView can finish rendering (fixes 0-posts while covered).
+- Auth detection also recognises the soft login wall text that appears on search without a session.
+
 ## 2.1.1
 **Fixed**
 - Collector no longer drops posts when the status link is absolute, contains a query string, or the time element is nested differently. Username falls back to the User-Name profile link.

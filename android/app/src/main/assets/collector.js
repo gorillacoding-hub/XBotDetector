@@ -1,5 +1,5 @@
 // Author: gorcoding
-// XBotScope page collector (v2.1.1). Injected at document start for https://x.com ONLY.
+// XBotScope page collector (v2.1.2). Injected at document start for https://x.com ONLY.
 // Reads publicly visible fields from the page DOM for the CURRENT step set by the app
 // (search | posts | replies | followers | following | profile) and sends them to the app.
 // It never touches credentials, cookies, storage or forms. It never clicks anything.
@@ -80,6 +80,9 @@
     var p = location.pathname;
     if (p.indexOf("/i/flow/login") === 0 || p === "/login" || p.indexOf("/i/flow/signup") === 0) return "logged_out";
     if (document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"],[data-testid="AppTabBar_Profile_Link"]')) return "logged_in";
+    // Soft login wall often shown on search/home without a session
+    var body = ((document.body && document.body.innerText) || "").slice(0, 2000).toLowerCase();
+    if (/sign in to x|log in to x|create your account|don.?t miss what.?s happening|sign in to see/.test(body)) return "logged_out";
     return "unknown";
   }
   function reportState() {
